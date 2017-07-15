@@ -22,6 +22,7 @@
 #include <linux/serial_core.h>
 #include <linux/platform_device.h>
 #include <linux/io.h>
+#include <linux/dm9000.h>
 
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
@@ -149,12 +150,52 @@ static struct s3c2410fb_mach_info smdk2440_fb_info __initdata = {
 	.lpcsel		= ((0xCE6) & ~7) | 1<<4,
 };
 
+/* DM9000EP 10/100 ethernet controller */
+
+static struct resource smdk2440_dm9000_resource[] = {
+
+	[0] = {
+		.start = (S3C2410_CS4 + 0x300),
+		.end   = (S3C2410_CS4 + 0x300) + 3,
+		.flags = IORESOURCE_MEM
+	},
+	[1] = {
+		.start = (S3C2410_CS4 + 0x300) + 4,
+		.end   = (S3C2410_CS4 + 0x300) + 7,
+		.flags = IORESOURCE_MEM
+	},
+	[2] = {
+		.start = IRQ_EINT7,
+		.end   = IRQ_EINT7,
+		.flags = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHEDGE,
+	}
+};
+
+/*
+ * The DM9000 has no eeprom, and it's MAC address is set by platform data
+ */
+static struct dm9000_plat_data smdk2440_dm9000_pdata = {
+	.flags		= (DM9000_PLATF_16BITONLY | DM9000_PLATF_NO_EEPROM),
+	.dev_addr	= {0x08, 0x00, 0x3e, 0x26, 0x0a, 0x5b},
+};
+
+static struct platform_device smdk2440_device_eth = {
+	.name		= "dm9000",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(smdk2440_dm9000_resource),
+	.resource	= smdk2440_dm9000_resource,
+	.dev		= {
+		.platform_data	= &smdk2440_dm9000_pdata,
+	},
+};
+
 static struct platform_device *smdk2440_devices[] __initdata = {
 	&s3c_device_usb,
 	&s3c_device_lcd,
 	&s3c_device_wdt,
 	&s3c_device_i2c0,
 	&s3c_device_iis,
+	&smdk2440_device_eth,
 };
 
 static void __init smdk2440_map_io(void)
